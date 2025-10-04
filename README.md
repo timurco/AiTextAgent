@@ -2,6 +2,8 @@
 
 macOS menu bar application for instant text translation to English using Google Gemini AI and a global hotkey.
 
+![AiTextAgent_English_Translation_Demo](https://github.com/user-attachments/assets/ebcebaec-f4d0-4b7c-b66f-f840a3579178)
+
 ## Features
 
 - **One-Key Translation**: Press `⌘⇧Space` (Cmd+Shift+Space) to translate clipboard text
