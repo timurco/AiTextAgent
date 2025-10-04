@@ -11,6 +11,7 @@ class MenuBarController {
     init() {
         setupMenuBar()
         setupHotKey()
+        setStatus(.idle)
     }
 
     /// Set up menu bar icon and menu
@@ -51,6 +52,47 @@ class MenuBarController {
         statusItem?.menu = menu
     }
 
+    /// Status states
+    enum Status {
+        case idle
+        case processing
+        case done
+        case error(String)
+    }
+
+    /// Update menu bar status
+    private func setStatus(_ status: Status) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let button = self.statusItem?.button else { return }
+
+            switch status {
+            case .idle:
+                button.title = ""
+                button.toolTip = "AI Text Agent - Ready\nPress ⌘⇧Space to translate clipboard"
+
+            case .processing:
+                button.title = "⏳"
+                button.toolTip = "Processing...\nTranslating your text with AI"
+
+            case .done:
+                button.title = "✅"
+                button.toolTip = "Done!\nTranslation copied to clipboard"
+                // Auto-clear after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                    self?.setStatus(.idle)
+                }
+
+            case .error(let message):
+                button.title = "❌"
+                button.toolTip = "Error: \(message)\nCheck logs for details"
+                // Auto-clear after 5 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                    self?.setStatus(.idle)
+                }
+            }
+        }
+    }
+
     /// Set up global hotkey (Cmd+Shift+Space)
     private func setupHotKey() {
         hotKeyManager.registerHotKey { [weak self] in
@@ -65,14 +107,14 @@ class MenuBarController {
         // Read clipboard
         guard let clipboardText = textCaptureService.getClipboardText() else {
             print("⚠️  Clipboard is empty")
-            showNotification(title: "Empty Clipboard", message: "Copy some text first, then press ⌘⇧Space")
+            setStatus(.error("Empty clipboard"))
             return
         }
 
         print("📝 Processing clipboard text: \(clipboardText.prefix(50))...")
 
-        // Show processing notification
-        showNotification(title: "Processing...", message: "AI is working on your text")
+        // Show processing status
+        setStatus(.processing)
 
         // Send to AI
         Task {
@@ -90,26 +132,14 @@ class MenuBarController {
             // Copy response to clipboard
             textCaptureService.setClipboardText(response)
 
-            // Show success notification
-            showNotification(title: "✅ Done!", message: "AI response copied to clipboard")
+            // Show success status
+            setStatus(.done)
 
             print("✅ Response copied to clipboard")
         } catch {
             print("❌ Error: \(error)")
-            showNotification(title: "Error", message: error.localizedDescription)
+            setStatus(.error(error.localizedDescription))
         }
-    }
-
-    /// Show macOS notification
-    private func showNotification(title: String, message: String) {
-        print("🔔 Showing notification: \(title) - \(message.prefix(50))...")
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = message
-        notification.soundName = NSUserNotificationDefaultSoundName
-
-        NSUserNotificationCenter.default.deliver(notification)
-        print("🔔 Notification delivered")
     }
 
     @objc private func quit() {

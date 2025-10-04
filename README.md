@@ -8,6 +8,8 @@ macOS menu bar application for instant text translation to English using Google 
 
 - **One-Key Translation**: Press `⌘⇧Space` (Cmd+Shift+Space) to translate clipboard text
 - **Menu Bar Integration**: Lightweight menu bar app that runs in the background
+- **Visual Status Indicators**: See processing status (⏳), completion (✅), or errors (❌) right in the menu bar
+- **Helpful Tooltips**: Hover over the icon for detailed status information
 - **Clipboard-Based**: Works with any copied text, no complex permissions needed
 - **AI-Powered**: Uses Google Gemini for natural, context-aware translation
 - **Instant Results**: Translation automatically replaces clipboard content
@@ -69,8 +71,25 @@ You'll see a brain icon (🧠) appear in your menu bar.
 
 1. Copy any text in any language (⌘C)
 2. Press `⌘⇧Space`
-3. Wait for "Processing..." notification
-4. When you see "✅ Done!" notification, paste the translation (⌘V)
+3. Watch the menu bar icon change to ⏳ (processing)
+4. When you see ✅ appear, the translation is ready in your clipboard
+5. Paste the translation (⌘V)
+
+### Status Indicators
+
+The app shows its current state directly in the menu bar:
+
+- **🧠** - Ready and waiting (hover to see "AI Text Agent - Ready")
+- **🧠 ⏳** - Processing your text with AI (hover to see "Processing...")
+- **🧠 ✅** - Translation complete and copied to clipboard (auto-clears after 3 seconds)
+- **🧠 ❌** - Error occurred (hover to see error details, auto-clears after 5 seconds)
+
+**Tooltip Information:**
+- Hover your mouse over the menu bar icon to see detailed status
+- Ready state shows usage instructions
+- Processing state shows what's happening
+- Done state confirms translation is ready
+- Error state shows the specific error message
 
 ### Running on Startup (Optional)
 
@@ -123,7 +142,6 @@ The AI translator is configured with specific rules:
 
 - **Natural Style Matching**: Preserves informal/formal tone of original text
 - **Context-Aware**: Uses bracketed information for context (brackets removed in output)
-- **Proper Transliteration**: Handles Sanskrit names correctly (e.g., Виджаянти → Vijayantii)
 - **Human-Like Output**: Uses natural punctuation (' instead of ', - instead of —)
 - **Technical Terms**: Preserves abbreviations like "AE" (After Effects) as-is
 - **Clean Formatting**: No unnecessary quotes, periods, or formal hedging
@@ -179,12 +197,6 @@ swift build -c release
 lldb -o "env GEMINI_API_KEY=your_key" -o "run" .build/release/AITextAgent
 ```
 
-### Code Style
-
-- All comments in English
-- Doxygen-compatible documentation
-- Swift naming conventions
-
 ## Troubleshooting
 
 ### "Empty Clipboard"
@@ -195,7 +207,8 @@ lldb -o "env GEMINI_API_KEY=your_key" -o "run" .build/release/AITextAgent
 - Set `GEMINI_API_KEY` environment variable
 - Check that the API key is valid and has proper permissions
 
-### "Error" notification
+### Error indicator (❌) appears
+- Hover over the menu bar icon to see the specific error message
 - Check your internet connection
 - Verify API key is correct
 - Check Console.app for detailed error messages
