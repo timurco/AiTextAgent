@@ -17,3 +17,4 @@ DerivedData/
 # Build artifacts
 *.app
 *.dSYM
+.claude/

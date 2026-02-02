@@ -2,13 +2,15 @@ import AppKit
 import Foundation
 
 /// Controls the menu bar icon and menu
-class MenuBarController {
+class MenuBarController: NSObject {
     private var statusItem: NSStatusItem?
     private let hotKeyManager = HotKeyManager()
     private let textCaptureService = TextCaptureService()
     private let aiService = AIService()
+    private var settingsWindow: SettingsWindow?  // Keep strong reference
 
-    init() {
+    override init() {
+        super.init()
         setupMenuBar()
         setupHotKey()
         setStatus(.idle)
@@ -44,6 +46,10 @@ class MenuBarController {
         menu.addItem(usageItem3)
 
         menu.addItem(NSMenuItem.separator())
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
@@ -142,7 +148,36 @@ class MenuBarController {
         }
     }
 
+    @objc private func openSettings() {
+        // If window already exists, just show it
+        if let existingWindow = settingsWindow {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        // Create new settings window
+        settingsWindow = SettingsWindow()
+
+        // Set delegate to handle window closing
+        settingsWindow?.delegate = self
+
+        // Show window
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+}
+
+/// Extension to handle window delegate
+extension MenuBarController: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        // Clear the reference when window is closed
+        if notification.object as? NSWindow === settingsWindow {
+            settingsWindow = nil
+        }
     }
 }

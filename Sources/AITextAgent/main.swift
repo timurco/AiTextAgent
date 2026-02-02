@@ -16,6 +16,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         print("AITextAgent shutting down...")
     }
+
+    /// Prevent app from terminating when Settings window is closed
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
 }
 
 /// Application entry point

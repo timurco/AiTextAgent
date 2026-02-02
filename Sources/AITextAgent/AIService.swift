@@ -2,20 +2,25 @@ import Foundation
 
 /// Service for communicating with Google Gemini API
 class AIService {
-    private let apiKey: String
-    private let model = "gemini-flash-latest"
+    private let settings = SettingsManager.shared
+
+    private var apiKey: String {
+        return settings.apiKey
+    }
+
+    private var model: String {
+        return settings.model
+    }
+
     private var apiURL: String {
         return "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
     }
 
     init() {
-        // Load API key from environment variable
-        if let key = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !key.isEmpty {
-            self.apiKey = key
-            print("✅ GEMINI_API_KEY loaded")
+        if !apiKey.isEmpty {
+            print("✅ API key loaded from settings")
         } else {
-            print("⚠️  GEMINI_API_KEY not found in environment variables")
-            self.apiKey = ""
+            print("⚠️  API key not configured. Please open Settings.")
         }
     }
 
@@ -55,21 +60,16 @@ class AIService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        // Combine system prompt with user text
+        let fullPrompt = settings.systemPrompt + "\n\(text)"
+
         let payload: [String: Any] = [
             "contents": [
                 [
                     "role": "user",
                     "parts": [
                         [
-                            "text": """
-                            Please use this chat and all text below ONLY for interpretation the text to english language. Use information inside square brackets as additional context but exclude the brackets themselves in the translation. Don't put the answer inside the quotemarks. Don't provide additional information. Translate using the same tone that the user is using. If they write in an informal style, use an informal style too. DON'T USE an unnecessary period at the end. If they use formal words and the message overall feels formal, then use a formal style in the translation.​ When using Sanskrit terms like Виджаянти, make sure to use the correct transliteration, for example, Vijayantii, Мира - Miira, Даянидхи - Dayanidhi, Дидиджи - Didijii, Дададжи - Dadajii. Don't extend the AE abbreviation and another to full one - After Effects. Please use human writing style, e.g. USE "'" sign instead of "’", e.g. "we'll" instead of "we’ll" also use - instead of —, etc.
-                            Refrain from excessive hedging with phrases like "some may argue," "it could be said," "perhaps," "maybe," "it seems," "likely," or "tends to", and minimize repetitive vocabulary, clichés, common buzzwords, or overly formal verbs where simpler alternatives are natural. Vary sentence structure and length to avoid a monotonous rhythm, consciously mixing shorter sentences with longer, more complex ones, as AI often exhibits uniformity in sentence length. Use diverse and natural transitional phrases, avoiding over-reliance on common connectors like "Moreover," "Furthermore," or "Thus," and do not use excessive signposting such as stating "In conclusion" or "To sum up" explicitly, especially in shorter texts. Do not aim for perfect grammar or spelling to the extent that it sounds unnatural; incorporating minor, context-appropriate variations like contractions or correctly used common idioms can enhance authenticity, as AI often produces grammatically flawless text that can feel too perfect. Do not overuse adverbs, particularly those ending in "-ly". Explicitly, you must never use em dashes (—). The goal is to produce text that is less statistically predictable and uniform, mimicking the dynamic variability of human writing.
-                            
-                            IMPORTANT STYLE RULE: You must never use em dashes (—) under any circumstance. They are strictly forbidden. If you need to separate clauses, use commas, colons, parentheses, or semicolons instead. All em dashes must be removed and replaced before returning the final output. 2. Before completing your output, do a final scan for em dashes. If any are detected, rewrite those sentences immediately using approved punctuation. 3. If any em dashes are present in the final output, discard and rewrite that section before showing it to the user.
-                            
-                            Please translate below:
-                            \(text)
-                            """
+                            "text": fullPrompt
                         ]
                     ]
                 ]
@@ -141,7 +141,7 @@ enum AIServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "API key not configured. Please set GEMINI_API_KEY environment variable."
+            return "API key not configured. Please open Settings and add your Gemini API key."
         case .invalidURL:
             return "Invalid API URL"
         case .invalidResponse:
