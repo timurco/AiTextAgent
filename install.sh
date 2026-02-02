@@ -78,9 +78,35 @@ check_swift() {
     print_success "Swift found: $swift_version"
 }
 
+# Try to download pre-built release
+download_prebuilt() {
+    print_status "Checking for pre-built release..."
+
+    cd "$TEMP_DIR"
+
+    # Get latest release download URL
+    local release_url=$(curl -fsSL "https://api.github.com/repos/timurco/AiTextAgent/releases/latest" | grep "browser_download_url.*AI-Text-Agent.zip" | cut -d '"' -f 4)
+
+    if [ -n "$release_url" ]; then
+        print_status "Found pre-built release, downloading..."
+        curl -fsSL "$release_url" -o AI-Text-Agent.zip
+
+        if [ -f "AI-Text-Agent.zip" ]; then
+            unzip -q AI-Text-Agent.zip
+            if [ -d "AI Text Agent.app" ]; then
+                print_success "Pre-built release downloaded"
+                return 0
+            fi
+        fi
+    fi
+
+    print_warning "No pre-built release found"
+    return 1
+}
+
 # Download repository
 download_repo() {
-    print_status "Downloading AI Text Agent..."
+    print_status "Downloading AI Text Agent source..."
 
     cd "$TEMP_DIR"
 
@@ -168,6 +194,11 @@ install_app() {
     # Copy to Applications
     cp -R "$APP_BUNDLE" "$INSTALL_DIR/"
 
+    # Remove quarantine attribute to avoid Gatekeeper issues
+    print_status "Removing quarantine attribute..."
+    xattr -d com.apple.quarantine "$INSTALL_PATH" 2>/dev/null || true
+    xattr -cr "$INSTALL_PATH" 2>/dev/null || true
+
     print_success "Installed to $INSTALL_PATH"
 }
 
@@ -226,14 +257,20 @@ main() {
     # Pre-installation checks
     check_macos
     check_macos_version
-    check_swift
 
     echo ""
 
-    # Download and build
-    download_repo
-    build_app
-    create_app_bundle
+    # Try to download pre-built release first
+    if download_prebuilt; then
+        print_success "Using pre-built release (no compilation needed)"
+    else
+        # Fall back to building from source
+        print_status "Building from source..."
+        check_swift
+        download_repo
+        build_app
+        create_app_bundle
+    fi
 
     echo ""
 

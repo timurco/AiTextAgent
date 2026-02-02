@@ -1,0 +1,86 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    name: Build macOS App
+    runs-on: macos-13  # macOS 13 or later for Swift 5.9+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build Release
+        run: |
+          echo "Building AI Text Agent..."
+          swift build -c release
+
+      - name: Create App Bundle
+        run: |
+          echo "Creating .app bundle..."
+          ./build_app.sh
+
+      - name: Create ZIP archive
+        run: |
+          echo "Creating ZIP archive..."
+          zip -r "AI-Text-Agent.zip" "AI Text Agent.app"
+
+      - name: Calculate checksums
+        run: |
+          shasum -a 256 "AI-Text-Agent.zip" > checksums.txt
+          cat checksums.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Text-Agent
+          path: |
+            AI-Text-Agent.zip
+            checksums.txt
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            AI-Text-Agent.zip
+            checksums.txt
+          body: |
+            ## AI Text Agent Release
+
+            ### Installation
+
+            **Quick Install (Recommended):**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/timurco/AiTextAgent/main/install.sh | bash
+            ```
+
+            **Manual Install:**
+            1. Download `AI-Text-Agent.zip`
+            2. Unzip the file
+            3. Move `AI Text Agent.app` to `/Applications/`
+            4. Open the app and configure your Gemini API key in Settings
+
+            ### What's New
+            - Menu bar application for instant text translation
+            - Global hotkey: ⌘⇧Space
+            - Powered by Google Gemini AI
+            - Secure API key storage
+            - Auto-launch at login support
+
+            ### Checksums
+            See `checksums.txt` for SHA-256 verification
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
