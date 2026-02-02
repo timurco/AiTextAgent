@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Build macOS App
-    runs-on: macos-13  # macOS 13 or later for Swift 5.9+
+    runs-on: macos-latest  # Use latest stable macOS version
 
     steps:
       - name: Checkout code
