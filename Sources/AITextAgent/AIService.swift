@@ -1,5 +1,11 @@
 import Foundation
 
+/// Target language for translation
+enum TargetLanguage {
+    case english
+    case romanian
+}
+
 /// Service for communicating with Google Gemini API
 class AIService {
     private let settings = SettingsManager.shared
@@ -25,13 +31,13 @@ class AIService {
     }
 
     /// Process text with Gemini AI
-    func processText(_ text: String) async throws -> String {
+    func processText(_ text: String, target: TargetLanguage = .english) async throws -> String {
         guard !apiKey.isEmpty else {
             throw AIServiceError.missingAPIKey
         }
 
         print("🌐 Making request to: \(apiURL)")
-        let request = try createRequest(for: text)
+        let request = try createRequest(for: text, target: target)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -50,8 +56,23 @@ class AIService {
         return try parseResponse(data)
     }
 
+    /// Build the full prompt: hard rules (emoji, language override) + user's system prompt + text.
+    /// Rules are enforced in code so they apply even with a custom prompt saved in UserDefaults.
+    private func buildPrompt(for text: String, target: TargetLanguage) -> String {
+        var rules: [String] = [
+            "PRESERVE EMOJI: Keep every emoji from the source text in the translation, in the same positions relative to the words around them. Never remove, replace or add emoji."
+        ]
+
+        if target == .romanian {
+            rules.append("TARGET LANGUAGE OVERRIDE: Translate into Romanian (limba română), NOT English. This overrides any target language mentioned in the instructions below. All other rules still apply.")
+        }
+
+        let header = "IMPORTANT RULES (highest priority, override anything below):\n- " + rules.joined(separator: "\n- ")
+        return header + "\n\n" + settings.systemPrompt + "\n\(text)"
+    }
+
     /// Create API request
-    private func createRequest(for text: String) throws -> URLRequest {
+    private func createRequest(for text: String, target: TargetLanguage) throws -> URLRequest {
         guard let url = URL(string: apiURL) else {
             throw AIServiceError.invalidURL
         }
@@ -60,8 +81,7 @@ class AIService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Combine system prompt with user text
-        let fullPrompt = settings.systemPrompt + "\n\(text)"
+        let fullPrompt = buildPrompt(for: text, target: target)
 
         let payload: [String: Any] = [
             "contents": [

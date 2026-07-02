@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import Foundation
 
 /// Controls the menu bar icon and menu
@@ -37,9 +38,13 @@ class MenuBarController: NSObject {
         usageItem1.isEnabled = false
         menu.addItem(usageItem1)
 
-        let usageItem2 = NSMenuItem(title: "2. Press ⌘⇧Space", action: nil, keyEquivalent: "")
+        let usageItem2 = NSMenuItem(title: "2. ⌘⇧Space → English", action: nil, keyEquivalent: "")
         usageItem2.isEnabled = false
         menu.addItem(usageItem2)
+
+        let usageItem2b = NSMenuItem(title: "    ⌘⇧B → Romanian", action: nil, keyEquivalent: "")
+        usageItem2b.isEnabled = false
+        menu.addItem(usageItem2b)
 
         let usageItem3 = NSMenuItem(title: "3. AI result → clipboard", action: nil, keyEquivalent: "")
         usageItem3.isEnabled = false
@@ -74,7 +79,7 @@ class MenuBarController: NSObject {
             switch status {
             case .idle:
                 button.title = ""
-                button.toolTip = "AI Text Agent - Ready\nPress ⌘⇧Space to translate clipboard"
+                button.toolTip = "AI Text Agent - Ready\n⌘⇧Space → English\n⌘⇧B → Romanian"
 
             case .processing:
                 button.title = "⏳"
@@ -99,16 +104,27 @@ class MenuBarController: NSObject {
         }
     }
 
-    /// Set up global hotkey (Cmd+Shift+Space)
+    /// Hotkey ids
+    private enum HotKeyID: UInt32 {
+        case english = 1
+        case romanian = 2
+    }
+
+    /// Set up global hotkeys (⌘⇧Space → English, ⌘⇧B → Romanian)
     private func setupHotKey() {
-        hotKeyManager.registerHotKey { [weak self] in
-            self?.handleHotKeyPressed()
+        let hotKeys = [
+            HotKeyManager.HotKey(id: HotKeyID.english.rawValue, keyCode: 49, modifiers: UInt32(cmdKey | shiftKey), label: "Cmd+Shift+Space (English)"),
+            HotKeyManager.HotKey(id: HotKeyID.romanian.rawValue, keyCode: 11, modifiers: UInt32(cmdKey | shiftKey), label: "Cmd+Shift+B (Romanian)")
+        ]
+        hotKeyManager.registerHotKeys(hotKeys) { [weak self] id in
+            let target: TargetLanguage = (id == HotKeyID.romanian.rawValue) ? .romanian : .english
+            self?.handleHotKeyPressed(target: target)
         }
     }
 
     /// Handle hotkey press - read clipboard and send to AI
-    private func handleHotKeyPressed() {
-        print("🔥 Hotkey pressed!")
+    private func handleHotKeyPressed(target: TargetLanguage) {
+        print("🔥 Hotkey pressed! Target: \(target)")
 
         // Read clipboard
         guard let clipboardText = textCaptureService.getClipboardText() else {
@@ -124,15 +140,15 @@ class MenuBarController: NSObject {
 
         // Send to AI
         Task {
-            await processWithAI(text: clipboardText)
+            await processWithAI(text: clipboardText, target: target)
         }
     }
 
     /// Process text with AI service
-    private func processWithAI(text: String) async {
+    private func processWithAI(text: String, target: TargetLanguage) async {
         print("🤖 Sending to AI: \(text.prefix(50))...")
         do {
-            let response = try await aiService.processText(text)
+            let response = try await aiService.processText(text, target: target)
             print("✅ AI Response received: \(response.prefix(50))...")
 
             // Copy response to clipboard

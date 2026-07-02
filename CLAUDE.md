@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Text Agent is a macOS menu bar application for instant text translation to English using Google Gemini AI and a global hotkey (⌘⇧Space). The app runs as a lightweight background process using the clipboard-based workflow: copy text → press hotkey → get translation in clipboard.
+AI Text Agent is a macOS menu bar application for instant text translation to English (⌘⇧Space) or Romanian (⌘⇧B) using Google Gemini AI and global hotkeys. The app runs as a lightweight background process using the clipboard-based workflow: copy text → press hotkey → get translation in clipboard.
 
 ## Build Commands
 
@@ -82,14 +82,15 @@ main.swift (AppDelegate)
 - Uses URLSession for async HTTP requests to Google Gemini API
 - Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}`
 - Combines system prompt with user text in single request
+- `buildPrompt()` prepends hard rules in code (preserve emoji; Romanian language override for ⌘⇧B) so they apply even when a custom system prompt is saved in UserDefaults
 - Parses JSON response to extract translated text from `candidates[0].content.parts[0].text`
 - Retrieves API key and model from SettingsManager singleton
 
 **HotKeyManager.swift**
 - Uses Carbon Event Manager API for global hotkey registration
-- Registers Cmd+Shift+Space (keyCode: 49, modifiers: cmdKey | shiftKey)
+- Registers multiple hotkeys via `registerHotKeys([HotKey], callback:)`; callback receives the pressed hotkey's id (extracted from the Carbon event via GetEventParameter)
+- Current hotkeys: Cmd+Shift+Space (keyCode: 49, id 1 → English), Cmd+Shift+B (keyCode: 11, id 2 → Romanian)
 - Uses manual memory management (Unmanaged) to retain self for C callback
-- Single callback pattern: pass closure during registration
 
 **TextCaptureService.swift**
 - Simple wrapper around NSPasteboard.general
@@ -166,10 +167,11 @@ Edit `SettingsManager.availableModels` array (line 71-78).
 ### Customizing Default System Prompt
 Edit `SettingsManager.defaultSystemPrompt` (line 20-27).
 
-### Modifying Hotkey
-Edit `HotKeyManager.registerHotKey()`:
-- Change `keyCode` (line 16) - see Carbon key codes
-- Change `modifiers` (line 17) - cmdKey, shiftKey, optionKey, controlKey
+### Modifying Hotkeys
+Edit the `hotKeys` array in `MenuBarController.setupHotKey()`:
+- Change `keyCode` - see Carbon key codes (Space: 49, B: 11)
+- Change `modifiers` - cmdKey, shiftKey, optionKey, controlKey
+- To add a language: add a case to `TargetLanguage` (AIService.swift), extend `buildPrompt()` with an override rule, add a `HotKeyID` case and a HotKey entry in MenuBarController
 
 ## Common Pitfalls
 

@@ -1,12 +1,14 @@
 # AI Text Agent
 
-macOS menu bar application for instant text translation to English using Google Gemini AI and a global hotkey.
+macOS menu bar application for instant text translation to English or Romanian using Google Gemini AI and global hotkeys.
 
 ![AiTextAgent_English_Translation_Demo](https://github.com/user-attachments/assets/ebcebaec-f4d0-4b7c-b66f-f840a3579178)
 
 ## Features
 
-- **One-Key Translation**: Press `⌘⇧Space` (Cmd+Shift+Space) to translate clipboard text
+- **One-Key Translation**: Press `⌘⇧Space` (Cmd+Shift+Space) to translate clipboard text to English
+- **Romanian Translation**: Press `⌘⇧B` (Cmd+Shift+B) to translate to Romanian
+- **Emoji Preserved**: All emoji from the source text are kept in the translation
 - **Menu Bar Integration**: Lightweight menu bar app that runs in the background
 - **Visual Status Indicators**: See processing status (⏳), completion (✅), or errors (❌) right in the menu bar
 - **Helpful Tooltips**: Hover over the icon for detailed status information
@@ -17,8 +19,8 @@ macOS menu bar application for instant text translation to English using Google 
 ## How It Works
 
 1. **Copy** any text to clipboard (⌘C)
-2. **Press** `⌘⇧Space`
-3. **Get** English translation in clipboard automatically
+2. **Press** `⌘⇧Space` (English) or `⌘⇧B` (Romanian)
+3. **Get** translation in clipboard automatically
 4. **Paste** wherever you need (⌘V)
 
 ## Requirements
@@ -219,7 +221,7 @@ Default prompt includes rules for:
 - **main.swift**: Application entry point and lifecycle management
 - **Info.plist**: macOS app bundle configuration (LSUIElement for menu bar mode)
 - **MenuBarController**: Manages menu bar icon, menu, status indicators, and coordinates all services
-- **HotKeyManager**: Registers and handles global hotkey (Cmd+Shift+Space)
+- **HotKeyManager**: Registers and handles global hotkeys (Cmd+Shift+Space, Cmd+Shift+B)
 - **TextCaptureService**: Simple clipboard read/write operations
 - **AIService**: Communicates with Google Gemini API for translation
 - **SettingsManager**: Manages app settings persistence and auto-launch using ServiceManagement
