@@ -10,6 +10,12 @@ class MenuBarController: NSObject {
     private let aiService = AIService()
     private var settingsWindow: SettingsWindow?  // Keep strong reference
 
+    // Original clipboard texts (before being replaced by translations), newest first
+    private var originalHistory: [String] = []
+    private let historyLimit = 4
+    private var historyMenuItems: [NSMenuItem] = []
+    private var historyPlaceholderItem: NSMenuItem?
+
     override init() {
         super.init()
         setupMenuBar()
@@ -49,6 +55,22 @@ class MenuBarController: NSObject {
         let usageItem3 = NSMenuItem(title: "3. AI result → clipboard", action: nil, keyEquivalent: "")
         usageItem3.isEnabled = false
         menu.addItem(usageItem3)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Last original texts (pre-translation), click restores one to clipboard
+        let placeholder = NSMenuItem(title: "No original text yet", action: nil, keyEquivalent: "")
+        placeholder.toolTip = "Last original (pre-translation) texts will appear here"
+        menu.addItem(placeholder)
+        historyPlaceholderItem = placeholder
+
+        for _ in 0..<historyLimit {
+            let item = NSMenuItem(title: "", action: #selector(restoreHistoryItem(_:)), keyEquivalent: "")
+            item.target = self
+            item.isHidden = true
+            menu.addItem(item)
+            historyMenuItems.append(item)
+        }
 
         menu.addItem(NSMenuItem.separator())
 
@@ -135,6 +157,9 @@ class MenuBarController: NSObject {
 
         print("📝 Processing clipboard text: \(clipboardText.prefix(50))...")
 
+        // Remember the original text before the clipboard gets replaced
+        rememberOriginalText(clipboardText)
+
         // Show processing status
         setStatus(.processing)
 
@@ -156,12 +181,65 @@ class MenuBarController: NSObject {
 
             // Show success status
             setStatus(.done)
+            DispatchQueue.main.async { [weak self] in
+                ToastWindow.show(style: .success, flag: target.flag, title: "Done", text: response, under: self?.statusItem)
+            }
 
             print("✅ Response copied to clipboard")
         } catch {
             print("❌ Error: \(error)")
             setStatus(.error(error.localizedDescription))
+            let message = error.localizedDescription
+            DispatchQueue.main.async { [weak self] in
+                ToastWindow.show(style: .failure, flag: target.flag, title: "Error", text: message, under: self?.statusItem)
+            }
         }
+    }
+
+    /// Remember original clipboard text in history (newest first, deduplicated)
+    private func rememberOriginalText(_ text: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.originalHistory.removeAll { $0 == text }
+            self.originalHistory.insert(text, at: 0)
+            if self.originalHistory.count > self.historyLimit {
+                self.originalHistory.removeLast(self.originalHistory.count - self.historyLimit)
+            }
+            self.refreshHistoryMenu()
+        }
+    }
+
+    /// Sync history menu items with the history array
+    private func refreshHistoryMenu() {
+        historyPlaceholderItem?.isHidden = !originalHistory.isEmpty
+        for (index, item) in historyMenuItems.enumerated() {
+            if index < originalHistory.count {
+                let text = originalHistory[index]
+                item.title = "↩ \(Self.menuPreview(of: text))"
+                item.representedObject = text
+                item.toolTip = String(text.prefix(500))
+                item.isHidden = false
+            } else {
+                item.isHidden = true
+                item.representedObject = nil
+            }
+        }
+    }
+
+    /// One-line truncated preview for the menu item title
+    private static func menuPreview(of text: String) -> String {
+        let oneLine = text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return oneLine.count > 40 ? String(oneLine.prefix(40)) + "…" : oneLine
+    }
+
+    @objc private func restoreHistoryItem(_ sender: NSMenuItem) {
+        guard let text = sender.representedObject as? String else { return }
+        textCaptureService.setClipboardText(text)
+        print("↩ Original text restored to clipboard")
+        ToastWindow.show(style: .success, flag: "📋", title: "Restored", text: text, under: statusItem)
     }
 
     @objc private func openSettings() {

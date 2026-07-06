@@ -9,6 +9,8 @@ macOS menu bar application for instant text translation to English or Romanian u
 - **One-Key Translation**: Press `⌘⇧Space` (Cmd+Shift+Space) to translate clipboard text to English
 - **Romanian Translation**: Press `⌘⇧B` (Cmd+Shift+B) to translate to Romanian
 - **Emoji Preserved**: All emoji from the source text are kept in the translation
+- **Original Text History**: Menu keeps the last 4 original (pre-translation) texts, click one to restore it to clipboard
+- **Toast Notifications**: Tiny toast (150x40) under the menu bar icon shows result: green header on success, red on error, with target language flag; never steals focus
 - **Menu Bar Integration**: Lightweight menu bar app that runs in the background
 - **Visual Status Indicators**: See processing status (⏳), completion (✅), or errors (❌) right in the menu bar
 - **Helpful Tooltips**: Hover over the icon for detailed status information

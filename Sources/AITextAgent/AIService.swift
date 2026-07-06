@@ -4,6 +4,14 @@ import Foundation
 enum TargetLanguage {
     case english
     case romanian
+
+    /// Flag emoji for toast/status display
+    var flag: String {
+        switch self {
+        case .english: return "🇬🇧"
+        case .romanian: return "🇷🇴"
+        }
+    }
 }
 
 /// Service for communicating with Google Gemini API
@@ -60,7 +68,8 @@ class AIService {
     /// Rules are enforced in code so they apply even with a custom prompt saved in UserDefaults.
     private func buildPrompt(for text: String, target: TargetLanguage) -> String {
         var rules: [String] = [
-            "PRESERVE EMOJI: Keep every emoji from the source text in the translation, in the same positions relative to the words around them. Never remove, replace or add emoji."
+            "PRESERVE EMOJI: Keep every emoji from the source text in the translation, in the same positions relative to the words around them. Never remove, replace or add emoji.",
+            "SANSKRIT TERMS: Transliterate Sanskrit names/jargon (Дхармачакра, Виирендра, Даянидхи, Виджаянти, Вишарада etc.) to Latin instead of translating; long 'ī' is written as double 'ii' (Vijayantii, Viirendra, Miira, Dayanidhi, Didijii)."
         ]
 
         if target == .romanian {

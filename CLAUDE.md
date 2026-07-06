@@ -82,7 +82,7 @@ main.swift (AppDelegate)
 - Uses URLSession for async HTTP requests to Google Gemini API
 - Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}`
 - Combines system prompt with user text in single request
-- `buildPrompt()` prepends hard rules in code (preserve emoji; Romanian language override for ⌘⇧B) so they apply even when a custom system prompt is saved in UserDefaults
+- `buildPrompt()` prepends hard rules in code (preserve emoji; Sanskrit transliteration with long 'ī' as 'ii'; Romanian language override for ⌘⇧B) so they apply even when a custom system prompt is saved in UserDefaults
 - Parses JSON response to extract translated text from `candidates[0].content.parts[0].text`
 - Retrieves API key and model from SettingsManager singleton
 
@@ -192,7 +192,8 @@ Sources/AITextAgent/
 ├── TextCaptureService.swift # Clipboard I/O
 ├── AIService.swift         # Gemini API client
 ├── SettingsManager.swift   # Persistent settings + auto-launch
-└── SettingsWindow.swift    # Settings UI
+├── SettingsWindow.swift    # Settings UI
+└── ToastWindow.swift       # Tiny toast notifications under menu bar icon
 ```
 
 ## Platform Requirements
