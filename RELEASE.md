@@ -15,9 +15,9 @@ Users can then install without needing Swift/Xcode!
 
 ## Creating a Release
 
-### Step 1: Update Version (Optional)
+### Step 1: Update Version
 
-Update version number in relevant files if needed (currently no version file).
+Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Sources/AITextAgent/Info.plist`.
 
 ### Step 2: Create and Push Tag
 
@@ -33,7 +33,7 @@ git push origin v1.0.0
 
 Once you push the tag:
 1. GitHub Actions workflow starts automatically
-2. Builds the app on `macos-13` runner
+2. Builds the app on `macos-latest` runner
 3. Creates `.app` bundle
 4. Zips the bundle
 5. Creates a new GitHub Release
