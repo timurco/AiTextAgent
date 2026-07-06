@@ -67,6 +67,11 @@ Please translate below:
         }
     }
 
+    /// Default system prompt text (for "Restore Default" in settings UI)
+    var defaultPromptText: String {
+        return defaultSystemPrompt
+    }
+
     /// Available Gemini models
     var availableModels: [String] {
         return [

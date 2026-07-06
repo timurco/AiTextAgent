@@ -106,8 +106,9 @@ main.swift (AppDelegate)
 
 **SettingsWindow.swift**
 - Creates NSWindow programmatically (not from XIB/Storyboard)
-- Manual UI layout with NSStackView
-- Provides: API key input, model dropdown, launch at login checkbox, system prompt text editor
+- Manual frame-based layout, native dynamic colors (dark/light mode)
+- Provides: API key input with show/hide eye toggle + "Get API Key" link, model dropdown, hotkeys info, launch at login checkbox, system prompt editor with "Restore Default"
+- Save persists and closes silently (no confirmation alert)
 - Window lifecycle managed by MenuBarController (strong reference)
 
 ### Status Indicator System

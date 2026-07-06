@@ -5,13 +5,18 @@ class SettingsWindow: NSWindow {
     private let settings = SettingsManager.shared
 
     private var apiKeyField: NSSecureTextField!
+    private var apiKeyPlainField: NSTextField!
+    private var eyeButton: NSButton!
     private var modelPopup: NSPopUpButton!
     private var promptTextView: NSTextView!
     private var launchAtLoginCheckbox: NSButton!
 
+    private static let contentSize = NSSize(width: 540, height: 640)
+    private static let margin: CGFloat = 20
+
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
+            contentRect: NSRect(origin: .zero, size: SettingsWindow.contentSize),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -26,100 +31,130 @@ class SettingsWindow: NSWindow {
         loadSettings()
     }
 
+    // MARK: - UI construction helpers
+
+    private func sectionLabel(_ text: String, y: CGFloat) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        label.frame = NSRect(x: SettingsWindow.margin, y: y, width: 300, height: 16)
+        return label
+    }
+
+    private func captionLabel(_ text: String, y: CGFloat, width: CGFloat = 460) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .secondaryLabelColor
+        label.frame = NSRect(x: SettingsWindow.margin, y: y, width: width, height: 14)
+        label.lineBreakMode = .byTruncatingTail
+        return label
+    }
+
+    private func linkButton(_ title: String, action: Selector, x: CGFloat, y: CGFloat, width: CGFloat) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.isBordered = false
+        button.contentTintColor = .linkColor
+        button.font = NSFont.systemFont(ofSize: 11)
+        button.frame = NSRect(x: x, y: y, width: width, height: 16)
+        button.alignment = .right
+        return button
+    }
+
     /// Set up the settings UI
     private func setupUI() {
-        let contentView = NSView(frame: self.contentView!.bounds)
-        contentView.autoresizingMask = [.width, .height]
+        let W = SettingsWindow.contentSize.width
+        let H = SettingsWindow.contentSize.height
+        let margin = SettingsWindow.margin
+        let contentW = W - margin * 2
 
-        var yPos: CGFloat = 450
+        let contentView = NSView(frame: NSRect(origin: .zero, size: SettingsWindow.contentSize))
 
-        // Title
-        let titleLabel = NSTextField(labelWithString: "Settings")
-        titleLabel.font = NSFont.systemFont(ofSize: 18, weight: .bold)
-        titleLabel.frame = NSRect(x: 20, y: yPos, width: 560, height: 30)
-        contentView.addSubview(titleLabel)
+        // --- API Key ---
+        contentView.addSubview(sectionLabel("Gemini API Key", y: H - 36))
 
-        yPos -= 50
-
-        // API Key section
-        let apiKeyLabel = NSTextField(labelWithString: "Gemini API Key:")
-        apiKeyLabel.frame = NSRect(x: 20, y: yPos, width: 150, height: 20)
-        contentView.addSubview(apiKeyLabel)
-
-        apiKeyField = NSSecureTextField(frame: NSRect(x: 20, y: yPos - 30, width: 560, height: 24))
-        apiKeyField.placeholderString = "Enter your Gemini API key"
-        apiKeyField.isEditable = true
-        apiKeyField.isSelectable = true
-        apiKeyField.isBordered = true
+        apiKeyField = NSSecureTextField(frame: NSRect(x: margin, y: H - 66, width: contentW - 42, height: 24))
+        apiKeyField.placeholderString = "Paste your Gemini API key"
         apiKeyField.bezelStyle = .roundedBezel
-        apiKeyField.backgroundColor = .white
         contentView.addSubview(apiKeyField)
 
-        yPos -= 70
+        apiKeyPlainField = NSTextField(frame: apiKeyField.frame)
+        apiKeyPlainField.placeholderString = apiKeyField.placeholderString
+        apiKeyPlainField.bezelStyle = .roundedBezel
+        apiKeyPlainField.isHidden = true
+        contentView.addSubview(apiKeyPlainField)
 
-        // Model section
-        let modelLabel = NSTextField(labelWithString: "Gemini Model:")
-        modelLabel.frame = NSRect(x: 20, y: yPos, width: 150, height: 20)
-        contentView.addSubview(modelLabel)
+        eyeButton = NSButton(frame: NSRect(x: W - margin - 34, y: H - 66, width: 34, height: 24))
+        eyeButton.bezelStyle = .rounded
+        eyeButton.image = NSImage(systemSymbolName: "eye", accessibilityDescription: "Show API key")
+        eyeButton.target = self
+        eyeButton.action = #selector(toggleKeyVisibility)
+        contentView.addSubview(eyeButton)
 
-        modelPopup = NSPopUpButton(frame: NSRect(x: 20, y: yPos - 30, width: 300, height: 25))
+        contentView.addSubview(captionLabel("Stored locally in app preferences", y: H - 86, width: 300))
+        contentView.addSubview(linkButton("Get API Key ↗", action: #selector(openAPIKeyPage), x: W - margin - 110, y: H - 87, width: 110))
+
+        // --- Model ---
+        contentView.addSubview(sectionLabel("Model", y: H - 116))
+
+        modelPopup = NSPopUpButton(frame: NSRect(x: margin, y: H - 147, width: 240, height: 25))
         modelPopup.removeAllItems()
         modelPopup.addItems(withTitles: settings.availableModels)
         contentView.addSubview(modelPopup)
 
-        yPos -= 70
+        // --- Hotkeys info ---
+        let hotkeysInfo = NSTextField(labelWithString: "⌘⇧Space → English 🇬🇧        ⌘⇧B → Romanian 🇷🇴")
+        hotkeysInfo.font = NSFont.systemFont(ofSize: 12)
+        hotkeysInfo.textColor = .secondaryLabelColor
+        hotkeysInfo.frame = NSRect(x: margin, y: H - 172, width: contentW, height: 16)
+        contentView.addSubview(hotkeysInfo)
 
-        // Launch at login checkbox
+        // --- Launch at login ---
         launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch at Login", target: self, action: #selector(launchAtLoginChanged))
-        launchAtLoginCheckbox.frame = NSRect(x: 20, y: yPos, width: 200, height: 20)
+        launchAtLoginCheckbox.frame = NSRect(x: margin, y: H - 200, width: 200, height: 18)
         contentView.addSubview(launchAtLoginCheckbox)
 
-        yPos -= 40
+        // --- Separator ---
+        let separator = NSBox(frame: NSRect(x: margin, y: H - 213, width: contentW, height: 1))
+        separator.boxType = .separator
+        contentView.addSubview(separator)
 
-        // System Prompt section
-        let promptLabel = NSTextField(labelWithString: "System Prompt:")
-        promptLabel.frame = NSRect(x: 20, y: yPos, width: 560, height: 20)
-        contentView.addSubview(promptLabel)
+        // --- System Prompt ---
+        contentView.addSubview(sectionLabel("System Prompt", y: H - 242))
+        contentView.addSubview(linkButton("Restore Default", action: #selector(restoreDefaultPrompt), x: W - margin - 120, y: H - 242, width: 120))
 
-        yPos -= 10
-
-        // Create scrollable text view for prompt
-        let scrollView = NSScrollView(frame: NSRect(x: 20, y: 60, width: 560, height: yPos - 60))
+        let editorTop = H - 250
+        let editorBottom: CGFloat = 80
+        let scrollView = NSScrollView(frame: NSRect(x: margin, y: editorBottom, width: contentW, height: editorTop - editorBottom))
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
-        scrollView.autoresizingMask = [.width, .height]
+        scrollView.borderType = .bezelBorder
 
-        promptTextView = NSTextView(frame: scrollView.bounds)
+        promptTextView = NSTextView(frame: NSRect(origin: .zero, size: scrollView.contentSize))
         promptTextView.isEditable = true
         promptTextView.isSelectable = true
         promptTextView.isRichText = false
         promptTextView.allowsUndo = true
         promptTextView.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
         promptTextView.autoresizingMask = [.width]
-        promptTextView.textContainerInset = NSSize(width: 5, height: 5)
-        promptTextView.backgroundColor = .white
-        promptTextView.textColor = .black
-        promptTextView.insertionPointColor = .black
+        promptTextView.textContainerInset = NSSize(width: 6, height: 8)
+        promptTextView.backgroundColor = .textBackgroundColor
+        promptTextView.textColor = .textColor
+        promptTextView.insertionPointColor = .textColor
 
         scrollView.documentView = promptTextView
         contentView.addSubview(scrollView)
 
-        // Buttons at bottom
-        let resetButton = NSButton(frame: NSRect(x: 20, y: 20, width: 100, height: 28))
-        resetButton.title = "Reset"
-        resetButton.bezelStyle = .rounded
-        resetButton.target = self
-        resetButton.action = #selector(resetToDefaults)
-        contentView.addSubview(resetButton)
+        contentView.addSubview(captionLabel("Emoji, Sanskrit «ii» and ⌘⇧B Romanian rules are always enforced on top of this prompt", y: 58, width: contentW))
 
-        let cancelButton = NSButton(frame: NSRect(x: 380, y: 20, width: 100, height: 28))
+        // --- Bottom buttons ---
+        let cancelButton = NSButton(frame: NSRect(x: W - margin - 90 - 8 - 82, y: 18, width: 90, height: 30))
         cancelButton.title = "Cancel"
         cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1B}" // Escape
         cancelButton.target = self
         cancelButton.action = #selector(cancel)
         contentView.addSubview(cancelButton)
 
-        let saveButton = NSButton(frame: NSRect(x: 490, y: 20, width: 90, height: 28))
+        let saveButton = NSButton(frame: NSRect(x: W - margin - 82, y: 18, width: 82, height: 30))
         saveButton.title = "Save"
         saveButton.bezelStyle = .rounded
         saveButton.keyEquivalent = "\r" // Enter key
@@ -133,6 +168,7 @@ class SettingsWindow: NSWindow {
     /// Load current settings into UI
     private func loadSettings() {
         apiKeyField.stringValue = settings.apiKey
+        apiKeyPlainField.stringValue = settings.apiKey
 
         if let index = settings.availableModels.firstIndex(of: settings.model) {
             modelPopup.selectItem(at: index)
@@ -147,55 +183,58 @@ class SettingsWindow: NSWindow {
         // Set initial focus to API key field
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.makeFirstResponder(self.apiKeyField)
+            self.makeFirstResponder(self.visibleKeyField)
         }
     }
 
     /// Override to set focus when window becomes key
     override func becomeKey() {
         super.becomeKey()
-        if apiKeyField.stringValue.isEmpty {
-            makeFirstResponder(apiKeyField)
+        if visibleKeyField.stringValue.isEmpty {
+            makeFirstResponder(visibleKeyField)
         }
     }
 
-    /// Save settings
+    private var visibleKeyField: NSTextField {
+        return apiKeyPlainField.isHidden ? apiKeyField : apiKeyPlainField
+    }
+
+    /// Toggle between secure and plain API key field
+    @objc private func toggleKeyVisibility() {
+        let revealing = !apiKeyField.isHidden
+        if revealing {
+            apiKeyPlainField.stringValue = apiKeyField.stringValue
+        } else {
+            apiKeyField.stringValue = apiKeyPlainField.stringValue
+        }
+        apiKeyField.isHidden = revealing
+        apiKeyPlainField.isHidden = !revealing
+        let symbol = revealing ? "eye.slash" : "eye"
+        eyeButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: revealing ? "Hide API key" : "Show API key")
+        makeFirstResponder(visibleKeyField)
+    }
+
+    @objc private func openAPIKeyPage() {
+        if let url = URL(string: "https://aistudio.google.com/apikey") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Put the default prompt into the editor (persisted only on Save)
+    @objc private func restoreDefaultPrompt() {
+        promptTextView.string = settings.defaultPromptText
+    }
+
+    /// Save settings and close silently
     @objc private func saveSettings() {
-        settings.apiKey = apiKeyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        settings.apiKey = visibleKeyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let selectedModel = modelPopup.selectedItem?.title {
             settings.model = selectedModel
         }
 
         settings.systemPrompt = promptTextView.string
-
-        // Show confirmation
-        let alert = NSAlert()
-        alert.messageText = "Settings Saved"
-        alert.informativeText = "Your settings have been saved successfully."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.beginSheetModal(for: self) { [weak self] _ in
-            // Don't close the window, just dismiss the alert
-            // User can close window manually if needed
-        }
-    }
-
-    /// Reset to default settings
-    @objc private func resetToDefaults() {
-        let alert = NSAlert()
-        alert.messageText = "Reset to Defaults"
-        alert.informativeText = "Are you sure you want to reset all settings to defaults? This will not change your API key."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Reset")
-        alert.addButton(withTitle: "Cancel")
-
-        alert.beginSheetModal(for: self) { response in
-            if response == .alertFirstButtonReturn {
-                self.settings.resetToDefaults()
-                self.loadSettings()
-            }
-        }
+        self.close()
     }
 
     /// Cancel and close window
