@@ -75,10 +75,11 @@ jobs:
             4. Open the app and configure your Gemini API key in Settings
 
             ### What's New
-            - Menu bar application for instant text translation
-            - Global hotkey: ⌘⇧Space
-            - Powered by Google Gemini AI
-            - Secure API key storage
+            - Menu bar application for instant clipboard translation
+            - Hotkeys: ⌘⇧Space → English, ⌘⇧B → Romanian
+            - Emoji preservation and original text history (last 4, click to restore)
+            - Toast notifications under the menu bar icon
+            - Powered by Google Gemini AI, API key stored locally
             - Auto-launch at login support
 
             ### Checksums
